@@ -20,7 +20,7 @@ Ensure you have the following installed:
 1. Clone the repository:
    
 ```bash
-git clone https://github.com/yourusername/station-service.git
+git clone https://github.com/oguzhan18/station-service
 
 cd station-service
 ```
