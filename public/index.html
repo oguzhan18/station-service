@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Player</title>
+</head>
+<body>
+  <h1>Create Station</h1>
+  <button id="createStation">Create Station</button>
+  <p id="stationId"></p>
+
+  <h2>Now Playing</h2>
+  <audio id="audioPlayer" controls autoplay>
+    <source id="audioSource" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+
+  <h2>Upload Music</h2>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" id="musicFile" name="file" accept="audio/mpeg">
+    <button type="submit">Upload</button>
+  </form>
+
+  <script>
+    const audioPlayer = document.getElementById('audioPlayer');
+    const audioSource = document.getElementById('audioSource');
+    const uploadForm = document.getElementById('uploadForm');
+    const musicFile = document.getElementById('musicFile');
+    const createStationButton = document.getElementById('createStation');
+    const stationIdParagraph = document.getElementById('stationId');
+
+    let stationId = '';
+
+    createStationButton.addEventListener('click', async () => {
+      try {
+        const response = await fetch('http://localhost:3000/music/create', { method: 'POST' });
+        if (response.ok) {
+          const data = await response.json();
+          stationId = data.id;
+          stationIdParagraph.textContent = `Station ID: ${stationId}`;
+          fetchStatus();
+        } else {
+          console.error('Error creating station:', response.statusText);
+        }
+      } catch (err) {
+        console.error('Error creating station:', err);
+      }
+    });
+
+    const fetchStatus = async () => {
+      if (!stationId) return;
+
+      try {
+        const response = await fetch(`http://localhost:3000/music/${stationId}/status`);
+        if (response.ok) {
+          const data = await response.json();
+          const { currentFilePosition } = data;
+          audioSource.src = `http://localhost:3000/music/${stationId}/stream`;
+          audioPlayer.currentTime = currentFilePosition; // Set to the current position in seconds
+          audioPlayer.play().catch(error => console.error('Error playing audio:', error));
+        } else {
+          console.error('Error fetching status:', response.statusText);
+        }
+      } catch (err) {
+        console.error('Error fetching status:', err);
+      }
+    };
+
+    fetchStatus();
+
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!stationId) {
+        console.error('No station ID available');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', musicFile.files[0]);
+
+      try {
+        const response = await fetch(`http://localhost:3000/music/${stationId}/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          fetchStatus();
+        } else {
+          console.error('Error uploading file:', response.statusText);
+        }
+      } catch (err) {
+        console.error('Error uploading file:', err);
+      }
+    });
+
+    setInterval(fetchStatus, 10000); // Refresh status every 10 seconds to keep sync
+  </script>
+</body>
+</html>
